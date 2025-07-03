@@ -3,12 +3,12 @@ CXX = g++
 CXXFLAGS = -Wall -std=c++17 -Iinclude
 
 # Source files
-SRC = src/main.cpp src/glad.c
+SRC = src/main.cpp src/common/loadShader.cpp
 OBJ = $(SRC:.cpp=.o)
 TARGET = opengl_app
 
 # Libraries to link
-LIBS = -lglfw -ldl -lGL -lm
+LIBS = -lglfw -lGLEW -ldl -lGL -lm
 
 # Build target
 all: $(TARGET)

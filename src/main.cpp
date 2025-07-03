@@ -1,6 +1,12 @@
-#include <glad/glad.h>
+#include <stdio.h>
+#include <stdlib.h>
+#include <GL/glew.h>
 #include <GLFW/glfw3.h>
+#include <glm/glm.hpp>
 #include <iostream>
+#include "../include/shader.hpp"
+
+using namespace glm;
 
 // global variable for wize of window
 const GLuint WIDHT = 800, HEIGHT = 600;
@@ -15,60 +21,83 @@ void	key_handler(GLFWwindow* window, int key, int scancode, int action, int mode
 	}
 }
 
+static const float g_vertex_buffer_data[] = 
+{
+	-1.0f, -1.0f, 0.0f,
+	1.0f, -1.0f, 0.0f,
+	0.0f,  1.0f, 0.0f,
+};
+
 int main(void)
 {
-	GLFWwindow* window;
-	
 	// Initialize GLFW
 	if (!glfwInit())
 	{
-		std::cout << "GLFW failed to init" << std::endl;
+		fprintf(stderr, "Error initializng GLFW");
 		return -1;
 	}
 
 	// Set OpenGL version (3.3 core profile)
+	glfwWindowHint(GLFW_SAMPLES, 4);
 	glfwWindowHint(GLFW_CONTEXT_VERSION_MAJOR, 3);
 	glfwWindowHint(GLFW_CONTEXT_VERSION_MINOR, 3);
 	glfwWindowHint(GLFW_OPENGL_PROFILE, GLFW_OPENGL_CORE_PROFILE);
 
+	GLFWwindow* window;
 	window = glfwCreateWindow(WIDHT, HEIGHT, "Test window", NULL, NULL);
 	if (window == NULL)
 	{
-		std::cout << "Failed to create window" << std::endl;
+		fprintf(stderr, "Error initializng Window");
 		glfwTerminate();
 		return -1;
 	}
-
 	glfwMakeContextCurrent(window);
 	glfwSetKeyCallback(window, key_handler);
 
-	// Initialize GLAD
-	if (!gladLoadGLLoader((GLADloadproc)glfwGetProcAddress))
+	glewExperimental = true;
+	if (glewInit() != GLEW_OK)
 	{
-		std::cout << "Failed to initialize GLAD" << std::endl;
-		glfwTerminate();
+		fprintf(stderr, "Error initializng GLEW");
 		return -1;
 	}
+	GLuint VertexArrayID;
+	glGenVertexArrays(1, &VertexArrayID);
+	glBindVertexArray(VertexArrayID);
 
-	// Successfully loaded OpenGL
-	std::cout << "Loaded OpenGL " << GLVersion.major << "." << GLVersion.minor << std::endl;
+	glfwSetInputMode(window, GLFW_STICKY_KEYS, GL_TRUE);
 
-	glViewport(0, 0, WIDHT, HEIGHT);
+	GLuint vertexbuffer;
+	glGenBuffers(1, &vertexbuffer);
+	glBindBuffer(GL_ARRAY_BUFFER, vertexbuffer);
+	glBufferData(GL_ARRAY_BUFFER, sizeof(g_vertex_buffer_data), g_vertex_buffer_data, GL_STATIC_DRAW);
 
-	//running loop
-	while (!glfwWindowShouldClose(window))
+	GLuint programID = LoadShaders("src/SimpleVertexShader.vertexshader", "src/SimpleFragmentShader.fragmentshader");
+
+	// MAIN DRAW LOOP
+	do
 	{
-		glfwPollEvents(); // listener for events
+		glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
-		//render starts here
+		glEnableVertexAttribArray(0);
+		glBindBuffer(GL_ARRAY_BUFFER, vertexbuffer);
+		glVertexAttribPointer(
+			0,
+			3, 			// size
+			GL_FLOAT,	// type
+			GL_FALSE,	// normalized?
+			0,			// stride
+			(void *)0	// array buffer offset
+		);
+		// Actually draw
+		glDrawArrays(GL_TRIANGLES, 0, 3);
+		glDisableVertexAttribArray(0);
 
-		
-		//clear color buffer
-		glClearColor(0.2f, 0.3f, 0.3f, 1.0f);
-		glClear(GL_COLOR_BUFFER_BIT);
+		glUseProgram(programID);
 
 		glfwSwapBuffers(window);
-	}
+		glfwPollEvents();
+	} while (glfwGetKey(window, GLFW_KEY_ESCAPE) != GLFW_PRESS && glfwWindowShouldClose(window) == 0);
+	
 
 	glfwTerminate();
 	return 0;
